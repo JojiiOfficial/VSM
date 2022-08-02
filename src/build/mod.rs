@@ -3,7 +3,7 @@ use index_framework::{
     backend::memory::build::{options::BuildOption, MemIndexBuilder},
     traits::{
         backend::{Backend, NewBackend},
-        build::{DictMod, IndexBuilder},
+        build::{IndexBuilder, ItemMod},
         deser::DeSer,
         dictionary::BuildIndexDictionary,
         postings::BuildPostings,
@@ -23,8 +23,8 @@ impl<B, S, DD, SS, PP> Builder<B, S, DD, SS, PP>
 where
     B: Backend<DictTerm, DocVector<S>> + NewBackend<DictTerm, DocVector<S>>,
     S: DeSer,
-    SS: BuildIndexStorage<DocVector<S>, Output = B::Storage>,
-    DD: BuildIndexDictionary<DictTerm, Output = B::Dict> + DictMod<DictTerm>,
+    SS: BuildIndexStorage<DocVector<S>, Output = B::Storage> + ItemMod<S>,
+    DD: BuildIndexDictionary<DictTerm, Output = B::Dict> + ItemMod<DictTerm>,
     PP: BuildPostings<Output = B::Postings, PostingList = Vec<u32>>,
 {
     /// Creates a new index builder with a postings list length of 1
@@ -90,12 +90,21 @@ where
 
     #[inline]
     fn build_raw<M>(mut self, metadata: Option<M>) -> VSMIndexGen<B, S, M> {
+        self.process_terms();
+        self.process_vecs();
+        let index = self.builder.build();
+        VSMIndexGen::new(index, metadata)
+    }
+
+    fn process_vecs(&mut self) {
+        // TODO: add vector weight calc here
+    }
+
+    fn process_terms(&mut self) {
         for (id, freq) in &self.term_freqs {
             let mut term = self.builder.dict().get(*id).unwrap();
             term.frequency = *freq as f32;
-            self.builder.dict_mut().set_term(*id, term);
+            self.builder.dict_mut().set_item(*id, term);
         }
-        let index = self.builder.build();
-        VSMIndexGen::new(index, metadata)
     }
 }
