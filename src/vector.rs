@@ -23,10 +23,12 @@ impl Vector {
 
     /// Create a new Vec from raw values. Values don't have to be ordered
     #[inline]
-    pub fn create_new_raw(mut sparse: Vec<(u32, f32)>) -> Self {
-        sparse.sort_by(|a, b| a.0.cmp(&b.0));
+    pub fn create_new_raw<I>(sparse: I) -> Self
+    where
+        I: IntoIterator<Item = (u32, f32)>,
+    {
         let mut vec = Self {
-            inner: sparse,
+            inner: sparse.into_iter().collect(),
             length: 0.0,
         };
         vec.update();
@@ -170,6 +172,11 @@ impl Vector {
             })
             .ok()
             .map(|i| self.inner[i].1)
+    }
+
+    #[inline]
+    pub(crate) fn iter_mut(&mut self) -> impl Iterator<Item = &mut (u32, f32)> {
+        self.inner.iter_mut()
     }
 
     /// Calculate the vector length

@@ -2,6 +2,7 @@ pub mod build;
 pub mod dict_term;
 pub mod doc_vec;
 pub mod lock_step;
+pub mod presets;
 pub mod vector;
 pub mod weight;
 
@@ -13,10 +14,6 @@ use index_framework::{
 };
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
-
-fn main() {
-    println!("Hello, world!");
-}
 
 #[derive(Serialize, Deserialize)]
 pub struct VSMIndexGen<B, D, M> {

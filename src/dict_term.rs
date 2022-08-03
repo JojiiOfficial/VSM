@@ -68,9 +68,9 @@ impl Ord for DictTerm {
     }
 }
 
-impl<U: AsRef<str>> From<U> for DictTerm {
+impl<U: ToString> From<U> for DictTerm {
     #[inline]
     fn from(s: U) -> Self {
-        Self::new(s.as_ref().to_string())
+        Self::new(s.to_string())
     }
 }

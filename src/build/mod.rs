@@ -1,6 +1,8 @@
-use crate::{dict_term::DictTerm, doc_vec::DocVector, vector::Vector, VSMIndexGen};
+use crate::{
+    dict_term::DictTerm, doc_vec::DocVector, vector::Vector, weight::TermWeight, VSMIndexGen,
+};
 use index_framework::{
-    backend::memory::build::{options::BuildOption, MemIndexBuilder},
+    backend::memory::build::MemIndexBuilder,
     traits::{
         backend::{Backend, NewBackend},
         build::{IndexBuilder, ItemMod},
@@ -16,14 +18,20 @@ use std::collections::HashMap;
 pub struct Builder<B, S, DD, SS, PP> {
     builder: MemIndexBuilder<B, DictTerm, DocVector<S>, DD, SS, PP>,
     // Maps term-id to occurrence count
-    term_freqs: HashMap<u32, u32>,
+    term_freqs_total: HashMap<u32, u32>,
+
+    // Maps term frequencies for documents
+    tf: HashMap<u32, HashMap<u32, u32>>,
+
+    // Weighting variant
+    weight_fn: Option<Box<dyn TermWeight>>,
 }
 
 impl<B, S, DD, SS, PP> Builder<B, S, DD, SS, PP>
 where
     B: Backend<DictTerm, DocVector<S>> + NewBackend<DictTerm, DocVector<S>>,
     S: DeSer,
-    SS: BuildIndexStorage<DocVector<S>, Output = B::Storage> + ItemMod<S>,
+    SS: BuildIndexStorage<DocVector<S>, Output = B::Storage> + ItemMod<DocVector<S>>,
     DD: BuildIndexDictionary<DictTerm, Output = B::Dict> + ItemMod<DictTerm>,
     PP: BuildPostings<Output = B::Postings, PostingList = Vec<u32>>,
 {
@@ -36,13 +44,17 @@ where
     /// Creates a new index builder with a custom amount postings lists
     #[inline]
     pub fn with_postings_len(postings_len: usize) -> Self {
-        let mut builder = MemIndexBuilder::with_postings_len(postings_len);
-        builder.add_option(BuildOption::SortedPostings);
-        let term_freqs = HashMap::new();
+        let builder = MemIndexBuilder::with_postings_len(postings_len);
         Self {
             builder,
-            term_freqs,
+            term_freqs_total: HashMap::new(),
+            tf: HashMap::new(),
+            weight_fn: None,
         }
+    }
+
+    pub fn set_weight<W: TermWeight + 'static>(&mut self, w: W) {
+        self.weight_fn = Some(Box::new(w));
     }
 
     /// Inserts a new document into the index builder.
@@ -63,19 +75,28 @@ where
         U: Into<DictTerm>,
     {
         let mut ids = self.builder.terms_to_ids(terms);
-        ids.sort_unstable();
         if ids.is_empty() {
             return None;
         }
 
+        let mut term_freqs: HashMap<u32, u32> = HashMap::with_capacity(ids.len());
+
         for id in &ids {
-            *self.term_freqs.entry(*id).or_default() += 1;
+            *self.term_freqs_total.entry(*id).or_default() += 1;
+            *term_freqs.entry(*id).or_default() += 1;
         }
 
-        let sparse: Vec<_> = ids.iter().map(|i| (*i, 1.0)).collect();
-        let vec = Vector::create_new_raw(sparse);
+        ids.sort_unstable();
+        ids.dedup();
+
+        let vec = Vector::create_new_raw(ids.iter().map(|i| (*i, 1.0)));
         let doc_vec = DocVector::new(doc, vec);
-        Some(self.builder.index_new(post_id, doc_vec, &ids))
+
+        let id = self.builder.index_new(post_id, doc_vec, &ids);
+
+        self.tf.insert(id, term_freqs);
+
+        Some(id)
     }
 
     /// Build the index
@@ -97,11 +118,53 @@ where
     }
 
     fn process_vecs(&mut self) {
-        // TODO: add vector weight calc here
+        let len = self.builder.storage().len() as u32;
+        for i in 0..len {
+            let mut vec = self.builder.storage().get(i).unwrap();
+            self.calc_weight(i, vec.vec_mut());
+            self.builder.storage.set_item(i, vec);
+        }
+    }
+
+    #[inline]
+    fn calc_weight(&self, id: u32, vec: &mut Vector) {
+        let weight = match self.weight_fn.as_ref() {
+            Some(w) => w,
+            None => return,
+        };
+
+        let len = self.builder.storage.len();
+        let tf_map = self.tf.get(&id).unwrap();
+
+        for (d, w) in vec.iter_mut() {
+            let df = self.df(*d);
+            let tf = *tf_map.get(&d).expect("Term not found in frequencies") as usize;
+            *w = (weight).weight(*w, tf, df, len);
+
+            if *w == 0.0 {
+                // TODO maybe un-index here and remove the value from the vec
+                panic!("Weight reached zero!");
+            }
+        }
+    }
+
+    #[inline]
+    fn df(&self, pos: u32) -> usize {
+        let mut sum = 0;
+        for pi in 0..self.builder.postings_count() {
+            sum += self
+                .builder
+                .postings(pi)
+                .unwrap()
+                .get(&pos)
+                .map(|i| i.len())
+                .unwrap_or(0);
+        }
+        sum
     }
 
     fn process_terms(&mut self) {
-        for (id, freq) in &self.term_freqs {
+        for (id, freq) in &self.term_freqs_total {
             let mut term = self.builder.dict().get(*id).unwrap();
             term.frequency = *freq as f32;
             self.builder.dict_mut().set_item(*id, term);
