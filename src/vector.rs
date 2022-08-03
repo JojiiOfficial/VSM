@@ -74,7 +74,7 @@ impl Vector {
 
     /// Returns the reference to the inner vector
     #[inline]
-    pub fn sparse_vec(&self) -> &Vec<(u32, f32)> {
+    pub fn sparse(&self) -> &Vec<(u32, f32)> {
         &self.inner
     }
 
@@ -148,20 +148,24 @@ impl Vector {
 
     /// Returns an iterator over all dimensions of the vector
     #[inline]
-    pub fn vec_indices(&self) -> impl Iterator<Item = u32> + '_ {
+    pub fn dimensions(&self) -> impl Iterator<Item = u32> + '_ {
         self.inner.iter().map(|i| i.0)
     }
 
-    /// Returns an iterator over all values of the vector
+    /// Returns an iterator over all weights of the vector
     #[inline]
-    pub fn vec_values(&self) -> impl Iterator<Item = f32> + '_ {
+    pub fn weights(&self) -> impl Iterator<Item = f32> + '_ {
         self.inner.iter().map(|i| i.1)
     }
 
     /// Deletes a given dimension and its value from the vector
     #[inline]
     pub fn delete_dim(&mut self, dim: u32) {
-        self.inner.retain(|(curr_dim, _)| *curr_dim != dim);
+        // dimensions are unique so we can do binary search and remove
+        // only its result
+        if let Ok(pos) = self.inner.binary_search_by(|(d, _)| d.cmp(&dim)) {
+            self.inner.remove(pos);
+        }
     }
 
     #[inline]
@@ -169,8 +173,9 @@ impl Vector {
         self.inner.iter_mut()
     }
 
+    /// Returns the scalar product of self and `other`
     #[inline]
-    fn scalar(&self, other: &Vector) -> f32 {
+    fn scalar(&self, other: &Self) -> f32 {
         LockStepIter::new(self.inner.iter().copied(), other.inner.iter().copied())
             .map(|(_, a, b)| a * b)
             .sum()
@@ -180,10 +185,7 @@ impl Vector {
     #[inline]
     pub fn get_dim(&self, dim: u32) -> Option<f32> {
         self.inner
-            .binary_search_by(|a| {
-                let a = a.0;
-                a.cmp(&dim)
-            })
+            .binary_search_by(|(a, _)| a.cmp(&dim))
             .ok()
             .map(|i| self.inner[i].1)
     }
@@ -228,7 +230,4 @@ impl PartialEq for Vector {
     }
 }
 
-impl Eq for Vector {
-    #[inline]
-    fn assert_receiver_is_total_eq(&self) {}
-}
+impl Eq for Vector {}

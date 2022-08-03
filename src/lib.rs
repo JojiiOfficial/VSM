@@ -9,7 +9,10 @@ pub mod weight;
 use dict_term::DictTerm;
 use doc_vec::DocVector;
 use index_framework::{
-    traits::{backend::Backend, deser::DeSer, dictionary::IndexDictionary},
+    retrieve::Retrieve,
+    traits::{
+        backend::Backend, deser::DeSer, dictionary::IndexDictionary, postings::IndexPostings,
+    },
     Index,
 };
 use serde::{Deserialize, Serialize};
@@ -49,22 +52,36 @@ where
     pub fn new_query<I, T>(&self, terms: I) -> Option<Vector>
     where
         I: IntoIterator<Item = T>,
-        T: Into<DictTerm>,
+        T: Into<String>,
     {
-        self.new_query_with_weigts(terms.into_iter().map(|i| (i, 1.0)))
+        self.new_query_with_weigts(terms.into_iter().map(|i| (i.into(), 1.0)))
     }
 
     /// Similar to `new_query` but allows custom weights
     pub fn new_query_with_weigts<I, T>(&self, terms: I) -> Option<Vector>
     where
         I: IntoIterator<Item = (T, f32)>,
-        T: Into<DictTerm>,
+        T: Into<String>,
     {
         let t_ids = terms
             .into_iter()
-            .filter_map(|(t, w)| Some((self.index.dict().get_id(t)?, w)));
+            .filter_map(|(t, w)| Some((self.index.dict().get_id(t.into())?, w)));
         let vec = Vector::create_new_raw(t_ids);
         (!vec.is_empty()).then(|| vec)
+    }
+}
+
+impl<B, D, M> VSMIndexGen<B, D, M>
+where
+    B: Backend<DictTerm, DocVector<D>>,
+    D: DeSer,
+    <<B as Backend<DictTerm, DocVector<D>>>::Postings as IndexPostings>::List:
+        IntoIterator<Item = u32>,
+{
+    /// Returns an item retrieve for the given query vector
+    #[inline]
+    pub fn retrieve_for(&self, q_vec: &Vector) -> Retrieve<'_, B, DictTerm, DocVector<D>> {
+        self.index.retrieve().by_term_ids(q_vec.dimensions())
     }
 }
 

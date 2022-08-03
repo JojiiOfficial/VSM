@@ -2,7 +2,7 @@ use crate::{
     dict_term::DictTerm, doc_vec::DocVector, vector::Vector, weight::TermWeight, VSMIndexGen,
 };
 use index_framework::{
-    backend::memory::build::MemIndexBuilder,
+    backend::memory::build::{options::PostingsMod, MemIndexBuilder},
     traits::{
         backend::{Backend, NewBackend},
         build::{IndexBuilder, ItemMod},
@@ -14,9 +14,11 @@ use index_framework::{
 };
 use std::collections::HashMap;
 
+type MemBuilderType<B, S, DD, SS, PP> = MemIndexBuilder<B, DictTerm, DocVector<S>, DD, SS, PP>;
+
 /// Builder for VSM Indexes
 pub struct Builder<B, S, DD, SS, PP> {
-    builder: MemIndexBuilder<B, DictTerm, DocVector<S>, DD, SS, PP>,
+    builder: MemBuilderType<B, S, DD, SS, PP>,
     // Maps term-id to occurrence count
     term_freqs_total: HashMap<u32, u32>,
 
@@ -25,6 +27,9 @@ pub struct Builder<B, S, DD, SS, PP> {
 
     // Weighting variant
     weight_fn: Option<Box<dyn TermWeight>>,
+
+    // Max length of a postings entry
+    max_postings_len: usize,
 }
 
 impl<B, S, DD, SS, PP> Builder<B, S, DD, SS, PP>
@@ -50,11 +55,19 @@ where
             term_freqs_total: HashMap::new(),
             tf: HashMap::new(),
             weight_fn: None,
+            max_postings_len: 1000,
         }
     }
 
+    #[inline]
     pub fn set_weight<W: TermWeight + 'static>(&mut self, w: W) {
         self.weight_fn = Some(Box::new(w));
+    }
+
+    #[inline]
+    pub fn with_max_postings_len(mut self, max_postings_len: usize) -> Self {
+        self.max_postings_len = max_postings_len;
+        self
     }
 
     /// Inserts a new document into the index builder.
@@ -113,8 +126,34 @@ where
     fn build_raw<M>(mut self, metadata: Option<M>) -> VSMIndexGen<B, S, M> {
         self.process_terms();
         self.process_vecs();
+        self.process_postings();
         let index = self.builder.build();
         VSMIndexGen::new(index, metadata)
+    }
+
+    /// Sorts and compresses postings
+    fn process_postings(&mut self) {
+        let max_postings_len = self.max_postings_len;
+
+        let pmd = PostingsMod::new(
+            move |_pst_id, t_id, posts, builder: &MemBuilderType<B, S, DD, SS, PP>| {
+                // Sort by vector weight for the given term. This makes retrieval faster
+                // and allows removing unlikely vectors from the results
+                let storage = &builder.storage;
+                posts.sort_by(|a, b| {
+                    let a = storage.get(*a).and_then(|a| a.get_dim(t_id));
+                    let b = storage.get(*b).and_then(|b| b.get_dim(t_id));
+                    a.unwrap().total_cmp(&b.unwrap()).reverse()
+                });
+
+                // Trim posts to improve query processing time
+                if max_postings_len > 0 {
+                    posts.truncate(max_postings_len);
+                }
+            },
+        );
+
+        self.builder.set_postings_mod(pmd);
     }
 
     fn process_vecs(&mut self) {
