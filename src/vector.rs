@@ -36,7 +36,7 @@ impl Vector {
     }
 
     /// Create a new Vec from raw values. `sparse` must be sorted by dimensions
-    #[inline(always)]
+    #[inline]
     pub fn new_raw(sparse: Vec<(u32, f32)>, length: f32) -> Self {
         Self {
             inner: sparse,
@@ -44,9 +44,21 @@ impl Vector {
         }
     }
 
-    /// Calculates the similarity between two vectors
+    /// Calculates the dice similarity between two 'vectors'
     #[inline]
-    pub fn similarity(&self, other: &Vector) -> f32 {
+    pub fn dice(&self, other: &Vector) -> f32 {
+        if !self.could_overlap(other) {
+            return 0.0;
+        }
+
+        let both = LockStepIter::new(self.inner.iter().copied(), other.inner.iter().copied())
+            .count() as f32;
+        (2.0 * both) / (self.inner.len() as f32 + other.inner.len() as f32)
+    }
+
+    /// Calculates the cosine similarity between two vectors
+    #[inline]
+    pub fn cosine(&self, other: &Vector) -> f32 {
         let sc = self.scalar(other);
         if sc == 0.0 {
             return 0.0;
@@ -93,7 +105,9 @@ impl Vector {
             .is_some()
     }
 
-    /// Returns `true` if both vectors could potentionally have overlapping vectors
+    /// Returns `true` if both vectors could potentionally have overlapping vectors.
+    /// This is just an indication whether they could overlap and therefore faster than
+    /// `overlaps_with` but less accurate
     #[inline]
     pub fn could_overlap(&self, other: &Vector) -> bool {
         let cant_overlap = self.is_empty()
@@ -111,7 +125,7 @@ impl Vector {
     }
 
     /// Returns true if vector has a certain dimension
-    #[inline(always)]
+    #[inline]
     pub fn has_dim(&self, dim: u32) -> bool {
         self.inner.binary_search_by(|a| a.0.cmp(&dim)).is_ok()
     }
@@ -122,12 +136,12 @@ impl Vector {
         // Calculate new vector length
         self.length = self.calc_len();
 
-        // Sort the elements since order might be different
+        // Vector indices always have to be sorted
         self.sort();
     }
 
     /// Get the length of the vector
-    #[inline(always)]
+    #[inline]
     pub fn get_length(&self) -> f32 {
         self.length
     }
@@ -196,12 +210,12 @@ impl Vector {
         self.inner.dedup_by(|a, b| a.0 == b.0);
     }
 
-    #[inline(always)]
+    #[inline]
     fn last_indice(&self) -> u32 {
         self.inner.last().unwrap().0
     }
 
-    #[inline(always)]
+    #[inline]
     fn first_indice(&self) -> u32 {
         self.inner.first().unwrap().0
     }
