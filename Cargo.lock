@@ -45,6 +45,7 @@ checksum = "3f107b87b6afc2a64fd13cac55fe06d6c8859f12d4b14cbcdd2c67d0976781be"
 [[package]]
 name = "index_framework"
 version = "0.1.0"
+source = "git+https://github.com/WeDontPanic/index_framework#351110eaf97d5c84f0e947b20c32e5d590dbaa04"
 dependencies = [
  "bincode",
  "compressed_vec",
