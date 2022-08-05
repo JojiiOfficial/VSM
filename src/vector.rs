@@ -1,4 +1,4 @@
-use crate::lock_step::LockStepIter;
+use intersect_iter::TupleIntersect;
 use serde::{Deserialize, Serialize};
 use std::slice::IterMut;
 
@@ -51,7 +51,7 @@ impl Vector {
             return 0.0;
         }
 
-        let both = LockStepIter::new(self.inner.iter().copied(), other.inner.iter().copied())
+        let both = TupleIntersect::new(self.inner.iter().copied(), other.inner.iter().copied())
             .count() as f32;
         (2.0 * both) / (self.inner.len() as f32 + other.inner.len() as f32)
     }
@@ -90,7 +90,7 @@ impl Vector {
         &'a self,
         other: &'a Vector,
     ) -> impl Iterator<Item = (u32, f32, f32)> + 'a {
-        LockStepIter::new(self.inner.iter().copied(), other.inner.iter().copied())
+        TupleIntersect::new(self.inner.iter().copied(), other.inner.iter().copied())
     }
 
     /// Returns `true` if both vectors have at least one dimension in common
@@ -100,7 +100,7 @@ impl Vector {
             return false;
         }
 
-        LockStepIter::new(self.inner.iter().copied(), other.inner.iter().copied())
+        TupleIntersect::new(self.inner.iter().copied(), other.inner.iter().copied())
             .next()
             .is_some()
     }
@@ -176,7 +176,7 @@ impl Vector {
     /// Returns the scalar product of self and `other`
     #[inline]
     fn scalar(&self, other: &Self) -> f32 {
-        LockStepIter::new(self.inner.iter().copied(), other.inner.iter().copied())
+        TupleIntersect::new(self.inner.iter().copied(), other.inner.iter().copied())
             .map(|(_, a, b)| a * b)
             .sum()
     }

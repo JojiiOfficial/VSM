@@ -43,16 +43,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f107b87b6afc2a64fd13cac55fe06d6c8859f12d4b14cbcdd2c67d0976781be"
 
 [[package]]
+name = "float-ord"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ce81f49ae8a0482e4c55ea62ebbd7e5a686af544c00b9d090bba3ff9be97b3d"
+
+[[package]]
 name = "index_framework"
 version = "0.1.0"
-source = "git+https://github.com/WeDontPanic/index_framework#351110eaf97d5c84f0e947b20c32e5d590dbaa04"
+source = "git+https://github.com/WeDontPanic/index_framework#ec0327813af283607f01a7299f2db0436ebe7e5a"
 dependencies = [
  "bincode",
  "compressed_vec",
+ "intersect_iter",
  "itertools",
+ "order_struct",
  "serde",
  "st_file",
 ]
+
+[[package]]
+name = "intersect_iter"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aca3a10d26a96d5e258170892ccf7ffa5675adbb53ae5d7d7ad39e75d114c01c"
 
 [[package]]
 name = "itertools"
@@ -61,6 +75,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a9a9d19fa1e79b6215ff29b9d6880b706147f16e9b1dbb1e4e5947b5b02bc5e3"
 dependencies = [
  "either",
+]
+
+[[package]]
+name = "order_struct"
+version = "0.1.0"
+source = "git+https://github.com/JojiiOfficial/OrderStruct#db28b225bd444e9fd7f5138b346e0dbb6f531540"
+dependencies = [
+ "float-ord",
 ]
 
 [[package]]
@@ -83,18 +105,18 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.141"
+version = "1.0.142"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7af873f2c95b99fcb0bd0fe622a43e29514658873c8ceba88c4cb88833a22500"
+checksum = "e590c437916fb6b221e1d00df6e3294f3fccd70ca7e92541c475d6ed6ef5fee2"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.141"
+version = "1.0.142"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75743a150d003dd863b51dc809bcad0d73f2102c53632f1e954e738192a3413f"
+checksum = "34b5b8d809babe02f538c2cfec6f2c1ed10804c0e5a6a041a049a4f5588ccc2e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -122,9 +144,9 @@ dependencies = [
 
 [[package]]
 name = "unicode-ident"
-version = "1.0.2"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15c61ba63f9235225a22310255a29b806b907c9b8c964bcbd0a2c70f3f2deea7"
+checksum = "c4f5b37a154999a8f3f98cc23a628d850e154479cd94decf3414696e12e31aaf"
 
 [[package]]
 name = "utilsrs"
@@ -135,7 +157,7 @@ source = "git+https://github.com/JojiiOfficial/utilsrs#b0b019f328216bae7ad55faba
 name = "vsm"
 version = "0.1.0"
 dependencies = [
- "bincode",
  "index_framework",
+ "intersect_iter",
  "serde",
 ]

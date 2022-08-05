@@ -19,6 +19,7 @@ type MemBuilderType<B, S, DD, SS, PP> = MemIndexBuilder<B, DictTerm, DocVector<S
 /// Builder for VSM Indexes
 pub struct Builder<B, S, DD, SS, PP> {
     builder: MemBuilderType<B, S, DD, SS, PP>,
+
     // Maps term-id to occurrence count
     term_freqs_total: HashMap<u32, u32>,
 

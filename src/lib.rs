@@ -1,10 +1,11 @@
 pub mod build;
 pub mod dict_term;
 pub mod doc_vec;
-pub mod lock_step;
 pub mod presets;
 pub mod vector;
 pub mod weight;
+
+pub use index_framework;
 
 use dict_term::DictTerm;
 use doc_vec::DocVector;
@@ -75,8 +76,7 @@ impl<B, D, M> VSMIndexGen<B, D, M>
 where
     B: Backend<DictTerm, DocVector<D>>,
     D: DeSer,
-    <<B as Backend<DictTerm, DocVector<D>>>::Postings as IndexPostings>::List:
-        IntoIterator<Item = u32>,
+    <B as Backend<DictTerm, DocVector<D>>>::Postings: IndexPostings<List = Vec<u32>>,
 {
     /// Returns an item retrieve for the given query vector
     #[inline]
