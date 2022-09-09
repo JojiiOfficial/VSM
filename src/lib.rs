@@ -6,19 +6,17 @@ pub mod vector;
 pub mod weight;
 
 pub use index_framework;
+pub use vector::Vector;
 
 use dict_term::DictTerm;
 use doc_vec::DocVector;
 use index_framework::{
     retrieve::Retrieve,
-    traits::{
-        backend::Backend, deser::DeSer, dictionary::IndexDictionary, postings::IndexPostings,
-    },
+    traits::{backend::Backend, deser::DeSer, dictionary::IndexDictionary},
     Index,
 };
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
-use vector::Vector;
 
 /// A generic VSM index type
 #[derive(Serialize, Deserialize)]
@@ -76,7 +74,6 @@ impl<B, D, M> VSMIndexGen<B, D, M>
 where
     B: Backend<DictTerm, DocVector<D>>,
     D: DeSer,
-    <B as Backend<DictTerm, DocVector<D>>>::Postings: IndexPostings<List = Vec<u32>>,
 {
     /// Returns an item retrieve for the given query vector
     #[inline]

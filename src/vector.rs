@@ -1,6 +1,9 @@
 use intersect_iter::TupleIntersect;
 use serde::{Deserialize, Serialize};
-use std::slice::IterMut;
+use std::{
+    ops::{Add, AddAssign},
+    slice::IterMut,
+};
 
 /// A n-dimensional sparse vector
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -220,6 +223,56 @@ impl Vector {
     #[inline]
     fn first_indice(&self) -> u32 {
         self.inner.first().unwrap().0
+    }
+}
+
+impl Add<Self> for Vector {
+    type Output = Self;
+
+    #[inline]
+    fn add(mut self, rhs: Self) -> Self::Output {
+        self += rhs;
+        self
+    }
+}
+
+impl Add<&Vector> for &Vector {
+    type Output = Vector;
+
+    #[inline]
+    fn add(self, rhs: &Vector) -> Self::Output {
+        let mut s = self.clone();
+        s += rhs;
+        s
+    }
+}
+
+impl Add<&Vector> for Vector {
+    type Output = Self;
+
+    #[inline]
+    fn add(mut self, rhs: &Vector) -> Self::Output {
+        self += rhs;
+        self
+    }
+}
+
+impl AddAssign<&Vector> for Vector {
+    #[inline]
+    fn add_assign(&mut self, rhs: &Vector) {
+        assert_eq!(rhs.dimen_count(), self.dimen_count());
+        for (s, o) in self.inner.iter_mut().zip(rhs.inner.iter()) {
+            debug_assert_eq!(s.0, o.0);
+            s.1 += o.1;
+        }
+        self.update();
+    }
+}
+
+impl AddAssign<Self> for Vector {
+    #[inline]
+    fn add_assign(&mut self, rhs: Self) {
+        *self += &rhs;
     }
 }
 
