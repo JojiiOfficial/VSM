@@ -21,8 +21,8 @@ use std::ops::Deref;
 /// A generic VSM index type
 #[derive(Serialize, Deserialize)]
 pub struct VSMIndexGen<B, D, M> {
-    index: Index<B, DictTerm, DocVector<D>>,
-    metadata: Option<M>,
+    pub index: Index<B, DictTerm, DocVector<D>>,
+    pub metadata: Option<M>,
 }
 
 impl<B, D, M> VSMIndexGen<B, D, M>
