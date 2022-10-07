@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 serde = { version = "1.0.145", features = ["derive"] }
+#index_framework = {path = "../index_framework"}
 index_framework = { git = "https://github.com/WeDontPanic/index_framework" }
 intersect_iter = "0.1.0"

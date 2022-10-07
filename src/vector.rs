@@ -2,7 +2,7 @@ use intersect_iter::TupleIntersect;
 use serde::{Deserialize, Serialize};
 use std::{
     ops::{Add, AddAssign},
-    slice::IterMut,
+    slice::{Iter, IterMut},
 };
 
 /// A n-dimensional sparse vector
@@ -133,6 +133,16 @@ impl Vector {
         self.inner.binary_search_by(|a| a.0.cmp(&dim)).is_ok()
     }
 
+    /// Updates the value of a dimension. Leaves the vector in an unsorted, unupdated state.
+    /// update() should be called
+    pub fn set_dim(&mut self, dim: u32, val: f32) {
+        if !self.has_dim(dim) {
+            self.inner.push((dim, val));
+        }
+
+        *self.inner.iter_mut().find(|i| i.0 == dim).unwrap() = (dim, val);
+    }
+
     /// Update the vector values
     #[inline]
     pub fn update(&mut self) {
@@ -172,13 +182,18 @@ impl Vector {
     }
 
     #[inline]
+    pub fn sparse_iter(&self) -> Iter<(u32, f32)> {
+        self.inner.iter()
+    }
+
+    #[inline]
     pub fn sparse_iter_mut(&mut self) -> IterMut<(u32, f32)> {
         self.inner.iter_mut()
     }
 
     /// Returns the scalar product of self and `other`
     #[inline]
-    fn scalar(&self, other: &Self) -> f32 {
+    pub fn scalar(&self, other: &Self) -> f32 {
         TupleIntersect::new(self.inner.iter().copied(), other.inner.iter().copied())
             .map(|(_, a, b)| a * b)
             .sum()

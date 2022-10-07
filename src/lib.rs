@@ -16,7 +16,7 @@ use index_framework::{
     Index,
 };
 use serde::{Deserialize, Serialize};
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 /// A generic VSM index type
 #[derive(Serialize, Deserialize)]
@@ -92,5 +92,16 @@ where
     #[inline]
     fn deref(&self) -> &Self::Target {
         &self.index
+    }
+}
+
+impl<B, D, M> DerefMut for VSMIndexGen<B, D, M>
+where
+    B: Backend<DictTerm, DocVector<D>>,
+    D: DeSer,
+{
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.index
     }
 }
