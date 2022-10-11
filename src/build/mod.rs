@@ -72,6 +72,7 @@ where
 
     /// Inserts a new document into the index builder.
     /// Returns `None` if no terms were passed
+    #[inline]
     pub fn insert_vec<I, U>(&mut self, doc: S, terms: I) -> Option<u32>
     where
         I: IntoIterator<Item = U>,
@@ -82,7 +83,7 @@ where
 
     /// Inserts a new document into the index builder with a given postings ID.
     /// Returns `None` if no terms were passed
-    pub fn insert_vec_in_post<I, U>(&mut self, post_id: u32, doc: S, terms: I) -> Option<u32>
+    pub fn insert_vec_in_posts<I, U>(&mut self, post_ids: &[u32], doc: S, terms: I) -> Option<u32>
     where
         I: IntoIterator<Item = U>,
         U: Into<DictTerm>,
@@ -105,11 +106,24 @@ where
         let vec = SpVec32::create_new_raw(ids.iter().map(|i| (*i, 1.0)));
         let doc_vec = DocVector::new(doc, vec);
 
-        let id = self.builder.index_new(post_id, doc_vec, &ids);
+        let item_id = self.builder.insert_item(doc_vec);
 
-        self.tf.insert(id, term_freqs);
+        for post_id in post_ids {
+            self.builder.map(*post_id, item_id, &ids);
+        }
 
-        Some(id)
+        Some(item_id)
+    }
+
+    /// Inserts a new document into the index builder with a given postings ID.
+    /// Returns `None` if no terms were passed
+    #[inline]
+    pub fn insert_vec_in_post<I, U>(&mut self, post_id: u32, doc: S, terms: I) -> Option<u32>
+    where
+        I: IntoIterator<Item = U>,
+        U: Into<DictTerm>,
+    {
+        self.insert_vec_in_posts(&[post_id], doc, terms)
     }
 
     /// Build the index
