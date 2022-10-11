@@ -2,11 +2,7 @@ pub mod build;
 pub mod dict_term;
 pub mod doc_vec;
 pub mod presets;
-pub mod vector;
 pub mod weight;
-
-pub use index_framework;
-pub use vector::Vector;
 
 use dict_term::DictTerm;
 use doc_vec::DocVector;
@@ -16,6 +12,7 @@ use index_framework::{
     Index,
 };
 use serde::{Deserialize, Serialize};
+use sparse_vec::{SpVec32, VecExt};
 use std::ops::{Deref, DerefMut};
 
 /// A generic VSM index type
@@ -48,7 +45,7 @@ where
     /// Build a new query vector with given terms. Returns `None` if
     /// the vector is empty which is the case if no term could be found
     /// in the indexes dictionary
-    pub fn new_query<I, T>(&self, terms: I) -> Option<Vector>
+    pub fn new_query<I, T>(&self, terms: I) -> Option<SpVec32>
     where
         I: IntoIterator<Item = T>,
         T: Into<String>,
@@ -57,7 +54,7 @@ where
     }
 
     /// Similar to `new_query` but allows custom weights
-    pub fn new_query_with_weigts<I, T>(&self, terms: I) -> Option<Vector>
+    pub fn new_query_with_weigts<I, T>(&self, terms: I) -> Option<SpVec32>
     where
         I: IntoIterator<Item = (T, f32)>,
         T: Into<String>,
@@ -65,7 +62,7 @@ where
         let t_ids = terms
             .into_iter()
             .filter_map(|(t, w)| Some((self.index.dict().get_id(t.into())?, w)));
-        let vec = Vector::create_new_raw(t_ids);
+        let vec = SpVec32::create_new_raw(t_ids);
         (!vec.is_empty()).then(|| vec)
     }
 }
@@ -77,8 +74,10 @@ where
 {
     /// Returns an item retrieve for the given query vector
     #[inline]
-    pub fn retrieve_for(&self, q_vec: &Vector) -> Retrieve<'_, B, DictTerm, DocVector<D>> {
-        self.index.retrieve().by_term_ids(q_vec.dimensions())
+    pub fn retrieve_for(&self, q_vec: &SpVec32) -> Retrieve<'_, B, DictTerm, DocVector<D>> {
+        self.index
+            .retrieve()
+            .by_term_ids(q_vec.dimensions().map(|i| i as u32))
     }
 }
 

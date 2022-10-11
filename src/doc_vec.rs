@@ -1,17 +1,17 @@
-use crate::vector::Vector;
 use serde::{Deserialize, Serialize};
+use sparse_vec::SpVec32;
 use std::ops::{Deref, DerefMut};
 
 /// A document vector
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DocVector<D> {
     document: D,
-    vec: Vector,
+    vec: SpVec32,
 }
 
 impl<D> DocVector<D> {
     #[inline]
-    pub fn new(document: D, vec: Vector) -> Self {
+    pub fn new(document: D, vec: SpVec32) -> Self {
         Self { document, vec }
     }
 
@@ -21,12 +21,12 @@ impl<D> DocVector<D> {
     }
 
     #[inline]
-    pub fn vec(&self) -> &Vector {
+    pub fn vec(&self) -> &SpVec32 {
         &self.vec
     }
 
     #[inline]
-    pub fn into_vec(self) -> Vector {
+    pub fn into_vec(self) -> SpVec32 {
         self.vec
     }
 
@@ -41,13 +41,13 @@ impl<D> DocVector<D> {
     }
 
     #[inline]
-    pub fn vec_mut(&mut self) -> &mut Vector {
+    pub fn vec_mut(&mut self) -> &mut SpVec32 {
         &mut self.vec
     }
 }
 
 impl<D> Deref for DocVector<D> {
-    type Target = Vector;
+    type Target = SpVec32;
 
     #[inline]
     fn deref(&self) -> &Self::Target {

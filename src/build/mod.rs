@@ -1,6 +1,4 @@
-use crate::{
-    dict_term::DictTerm, doc_vec::DocVector, vector::Vector, weight::TermWeight, VSMIndexGen,
-};
+use crate::{dict_term::DictTerm, doc_vec::DocVector, weight::TermWeight, VSMIndexGen};
 use index_framework::{
     backend::memory::build::{options::PostingsMod, MemIndexBuilder},
     traits::{
@@ -12,6 +10,7 @@ use index_framework::{
         storage::BuildIndexStorage,
     },
 };
+use sparse_vec::{SpVec32, VecExt};
 use std::collections::HashMap;
 
 type MemBuilderType<B, S, DD, SS, PP> = MemIndexBuilder<B, DictTerm, DocVector<S>, DD, SS, PP>;
@@ -103,7 +102,7 @@ where
         ids.sort_unstable();
         ids.dedup();
 
-        let vec = Vector::create_new_raw(ids.iter().map(|i| (*i, 1.0)));
+        let vec = SpVec32::create_new_raw(ids.iter().map(|i| (*i, 1.0)));
         let doc_vec = DocVector::new(doc, vec);
 
         let id = self.builder.index_new(post_id, doc_vec, &ids);
@@ -142,8 +141,8 @@ where
                 // and allows removing unlikely vectors from the results
                 let storage = &builder.storage;
                 posts.sort_by(|a, b| {
-                    let a = storage.get(*a).and_then(|a| a.get_dim(t_id));
-                    let b = storage.get(*b).and_then(|b| b.get_dim(t_id));
+                    let a = storage.get(*a).and_then(|a| a.get_dim(t_id as usize));
+                    let b = storage.get(*b).and_then(|b| b.get_dim(t_id as usize));
                     a.unwrap().total_cmp(&b.unwrap()).reverse()
                 });
 
@@ -167,7 +166,7 @@ where
     }
 
     #[inline]
-    fn calc_weight(&self, id: u32, vec: &mut Vector) {
+    fn calc_weight(&self, id: u32, vec: &mut SpVec32) {
         let weight = match self.weight_fn.as_ref() {
             Some(w) => w,
             None => return,

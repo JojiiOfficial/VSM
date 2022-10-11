@@ -18,10 +18,7 @@ impl Vector {
     /// Creates a new empty vector
     #[inline]
     pub fn new_empty() -> Vector {
-        Vector {
-            inner: vec![],
-            length: 0.0,
-        }
+        Vector::default()
     }
 
     /// Create a new Vec from raw values. Values don't have to be ordered
@@ -299,3 +296,13 @@ impl PartialEq for Vector {
 }
 
 impl Eq for Vector {}
+
+impl Default for Vector {
+    #[inline]
+    fn default() -> Self {
+        Self {
+            inner: vec![],
+            length: 0.0,
+        }
+    }
+}
