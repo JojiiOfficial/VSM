@@ -46,6 +46,13 @@ impl<D> DocVector<D> {
     }
 }
 
+impl<D> AsRef<SpVec32> for DocVector<D> {
+    #[inline]
+    fn as_ref(&self) -> &SpVec32 {
+        self.vec()
+    }
+}
+
 impl<D> Deref for DocVector<D> {
     type Target = SpVec32;
 
