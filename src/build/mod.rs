@@ -83,6 +83,17 @@ where
 
     /// Inserts a new document into the index builder with a given postings ID.
     /// Returns `None` if no terms were passed
+    #[inline]
+    pub fn insert_vec_in_post<I, U>(&mut self, post_id: u32, doc: S, terms: I) -> Option<u32>
+    where
+        I: IntoIterator<Item = U>,
+        U: Into<DictTerm>,
+    {
+        self.insert_vec_in_posts(&[post_id], doc, terms)
+    }
+
+    /// Inserts a new document into the index builder with a given postings ID.
+    /// Returns `None` if no terms were passed
     pub fn insert_vec_in_posts<I, U>(&mut self, post_ids: &[u32], doc: S, terms: I) -> Option<u32>
     where
         I: IntoIterator<Item = U>,
@@ -108,22 +119,13 @@ where
 
         let item_id = self.builder.insert_item(doc_vec);
 
+        self.tf.insert(item_id, term_freqs);
+
         for post_id in post_ids {
             self.builder.map(*post_id, item_id, &ids);
         }
 
         Some(item_id)
-    }
-
-    /// Inserts a new document into the index builder with a given postings ID.
-    /// Returns `None` if no terms were passed
-    #[inline]
-    pub fn insert_vec_in_post<I, U>(&mut self, post_id: u32, doc: S, terms: I) -> Option<u32>
-    where
-        I: IntoIterator<Item = U>,
-        U: Into<DictTerm>,
-    {
-        self.insert_vec_in_posts(&[post_id], doc, terms)
     }
 
     /// Build the index
